@@ -82,12 +82,35 @@ optimizer = optim.Adam(model.parameters())
 try:
     model.load_state_dict(torch.load('cifar10_dnn.pt'))
     print('Model weights loaded')
+
+    model.eval()
+    valid_loss = 0
+    for data, target in valid_loader:
+        if torch.cuda.is_available():
+            data, target = data.cuda(), target.cuda()
+        output = model(data)
+        loss = criterion(output, target)
+        valid_loss += loss.item() * data.size(0)
+
+    # compute average loss
+    valid_loss /= len(valid_loader.sampler)
+
+    # display stats
+    print('Mininum Validation Loss: {:.6f}'.format(valid_loss))
+
+    # update min valid loss
+    valid_loss_min = valid_loss
 except:
     traceback.print_exc()
+    valid_loss_min = None
 
 # define training loop
-n_epochs = 5
-valid_loss_min = np.Inf
+n_epochs = 10
+if valid_loss_min is None:
+    valid_loss_min = np.Inf
+
+train_loss_list = list()
+valid_loss_list = list()
 
 start = time()
 for epoch in range(1, n_epochs + 1):
@@ -120,6 +143,9 @@ for epoch in range(1, n_epochs + 1):
     train_loss /= len(train_loader.sampler)
     valid_loss /= len(valid_loader.sampler)
 
+    train_loss_list.append(train_loss)
+    valid_loss_list.append(valid_loss)
+
     # display stats
     print('Epoch: {} \tTraining Loss: {:.6f} \tValidation Loss: {:.6f}'.format(epoch, train_loss, valid_loss))
 
@@ -135,7 +161,15 @@ writer.close()
 
 print('Time elapsed: {} minutes'.format((end - start) / 60.0))
 
-
+# visualize learning curve
+plt.figure()
+plt.plot(np.arange(n_epochs), train_loss_list)
+plt.plot(np.arange(n_epochs), valid_loss_list)
+plt.title('Learning Curve')
+plt.xlabel('Epochs')
+plt.ylabel('Cross Entropy Loss')
+plt.legend(['Training Loss', 'Validation Loss'])
+plt.show()
 
 
 
