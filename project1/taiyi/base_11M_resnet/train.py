@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -14,7 +15,7 @@ from time import time
 import traceback
 
 # hyperparams
-num_workers = 12 # tuned by testing (increases CPU efficiency)
+num_workers = 16 # tuned by testing (increases CPU efficiency)
 batch_size = 32
 valid_size = 0.1
 
@@ -83,31 +84,12 @@ try:
     model.load_state_dict(torch.load('cifar10_dnn.pt'))
     print('Model weights loaded')
 
-    model.eval()
-    valid_loss = 0
-    for data, target in valid_loader:
-        if torch.cuda.is_available():
-            data, target = data.cuda(), target.cuda()
-        output = model(data)
-        loss = criterion(output, target)
-        valid_loss += loss.item() * data.size(0)
-
-    # compute average loss
-    valid_loss /= len(valid_loader.sampler)
-
-    # display stats
-    print('Mininum Validation Loss: {:.6f}'.format(valid_loss))
-
-    # update min valid loss
-    valid_loss_min = valid_loss
 except:
     traceback.print_exc()
-    valid_loss_min = None
 
 # define training loop
-n_epochs = 10
-if valid_loss_min is None:
-    valid_loss_min = np.Inf
+n_epochs = 2
+valid_loss_min = np.Inf
 
 train_loss_list = list()
 valid_loss_list = list()
