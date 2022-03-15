@@ -3,17 +3,19 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class ResNet(nn.Module):
-    def __init__(self, block, num_blocks, num_classes=10):
+    def __init__(self, block, num_blocks, k, num_classes=10):
         super(ResNet, self).__init__()
-        self.in_channels = 64  
-        self.C1 = 64                     # C_1 = 64
+        self.in_channels = 64             
+        self.C1 = 16                     # C_1 = 64
+        self.k = k                       # widening factor
+
         
         self.conv1 = nn.Conv2d(3, self.C1, kernel_size=3, stride=1,
                             padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(self.C1)
-        self.layer1 = self._make_layer(block, self.C1, num_blocks[0], stride=1)
-        self.layer2 = self._make_layer(block, 2*self.C1, num_blocks[1], stride=2)
-        self.layer3 = self._make_layer(block, 4*self.C1, num_blocks[2], stride=2)
+        self.layer1 = self._make_layer(block, self.C1*self.k, num_blocks[0], stride=1)
+        self.layer2 = self._make_layer(block, 2*self.C1*self.k, num_blocks[1], stride=2)
+        self.layer3 = self._make_layer(block, 4*self.C1*self.k, num_blocks[2], stride=2)
         #self.layer4 = self._make_layer(block, 8*self.C1, num_blocks[3], stride=2)
         self.linear = nn.Linear(512, num_classes)
 
