@@ -38,7 +38,15 @@ def get_model_params(B_i):
     return hyper_params
                     
 
-
+'''
 hyper_params = get_model_params(B_i)
 print(len(hyper_params))
 print(hyper_params)
+'''
+d = 13
+k = 2
+model = ResNet(BasicBlock, [d, d, d], k=k)
+param_num = sum(p.numel() for p in model.parameters())
+print(param_num)
+
+
