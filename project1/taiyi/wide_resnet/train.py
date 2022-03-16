@@ -105,7 +105,7 @@ except:
     traceback.print_exc()
 
 # define training loop
-n_epochs = 100
+n_epochs = 200
 valid_loss_min = np.Inf
 
 train_loss_list = list()
