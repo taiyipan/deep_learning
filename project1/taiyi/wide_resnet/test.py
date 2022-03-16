@@ -16,7 +16,7 @@ import traceback
 # hyperparams
 num_workers = 16 # tuned by testing (increases CPU efficiency)
 batch_size = 128
-valid_size = 0.3
+valid_size = 0.2
 
 # define transform
 transform_train = transforms.Compose([
@@ -106,15 +106,16 @@ model.eval()
 for data, target in test_loader:
     if torch.cuda.is_available():
         data, target = data.cuda(), target.cuda()
-    output = model(data)
-    loss = criterion(output, target)
-    test_loss += loss.item() * data.size(0)
-    # calculate accuracies
-    _, pred = torch.max(output, 1)
-    correct_tensor = pred.eq(target.data.view_as(pred))
-    correct = np.squeeze(correct_tensor.numpy()) if not torch.cuda.is_available() else np.squeeze(correct_tensor.cpu().numpy())
-    total_correct += np.sum(correct)
-    total += correct.shape[0]
+    with torch.no_grad():
+        output = model(data)
+        loss = criterion(output, target)
+        test_loss += loss.item() * data.size(0)
+        # calculate accuracies
+        _, pred = torch.max(output, 1)
+        correct_tensor = pred.eq(target.data.view_as(pred))
+        correct = np.squeeze(correct_tensor.numpy()) if not torch.cuda.is_available() else np.squeeze(correct_tensor.cpu().numpy())
+        total_correct += np.sum(correct)
+        total += correct.shape[0]
 
 # calculate overall accuracy
 print('Model accuracy on test dataset: {:.2f}%'.format(total_correct / total * 100))

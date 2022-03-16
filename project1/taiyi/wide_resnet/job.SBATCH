@@ -3,7 +3,7 @@
 #SBATCH --job-name=resnet
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=16
-#SBATCH --time=00:20:00
+#SBATCH --time=21:00:00
 #SBATCH --mem=20GB
 #SBATCH --gres=gpu
 

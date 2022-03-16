@@ -17,7 +17,7 @@ import traceback
 # hyperparams
 num_workers = 16 # tuned by testing (increases CPU efficiency)
 batch_size = 128
-valid_size = 0.3
+valid_size = 0.2
 
 # define writer
 writer = SummaryWriter()
@@ -94,6 +94,7 @@ summary(model, (3, 32, 32))
 # define loss function and optimizer
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters())
+scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
 
 # load best model (lowest validation loss)
 try:
@@ -132,10 +133,13 @@ for epoch in range(1, n_epochs + 1):
     for data, target in valid_loader:
         if torch.cuda.is_available():
             data, target = data.cuda(), target.cuda()
-        output = model(data)
-        loss = criterion(output, target)
-        writer.add_scalar('Loss/valid', loss, epoch)
-        valid_loss += loss.item() * data.size(0)
+        with torch.no_grad():
+            output = model(data)
+            loss = criterion(output, target)
+            writer.add_scalar('Loss/valid', loss, epoch)
+            valid_loss += loss.item() * data.size(0)
+
+    scheduler.step()
 
     # compute average loss
     train_loss /= len(train_loader.sampler)
