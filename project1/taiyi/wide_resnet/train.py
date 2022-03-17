@@ -18,6 +18,7 @@ import traceback
 num_workers = 16 # tuned by testing (increases CPU efficiency)
 batch_size = 128
 valid_size = 0.1
+n_epochs = 300
 
 # define writer
 writer = SummaryWriter()
@@ -93,8 +94,9 @@ summary(model, (3, 32, 32))
 
 # define loss function and optimizer
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters())
-scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
+# optimizer = optim.Adam(model.parameters())
+optimizer = optim.SGD(model.parameters(), lr = 0.01, momentum = 0.9, weight_decay = 5e-4)
+scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max = n_epochs)
 
 # load best model (lowest validation loss)
 try:
@@ -105,7 +107,6 @@ except:
     traceback.print_exc()
 
 # define training loop
-n_epochs = 200
 valid_loss_min = np.Inf
 
 train_loss_list = list()
@@ -149,7 +150,7 @@ for epoch in range(1, n_epochs + 1):
     valid_loss_list.append(valid_loss)
 
     # display stats
-    print('Epoch: {} \tTraining Loss: {:.6f} \tValidation Loss: {:.6f}'.format(epoch, train_loss, valid_loss))
+    print('Epoch: {}/{} \tTraining Loss: {:.6f} \tValidation Loss: {:.6f}'.format(epoch, n_epochs, train_loss, valid_loss))
 
     # save best model
     if valid_loss <= valid_loss_min:
@@ -161,4 +162,4 @@ end = time()
 writer.flush()
 writer.close()
 
-print('Time elapsed: {} minutes'.format((end - start) / 60.0))
+print('Time elapsed: {} hours'.format((end - start) / 3600.0))

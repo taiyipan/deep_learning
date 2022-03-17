@@ -16,7 +16,7 @@ import traceback
 # hyperparams
 num_workers = 16 # tuned by testing (increases CPU efficiency)
 batch_size = 128
-valid_size = 0.2
+valid_size = 0.1
 
 # define transform
 transform_train = transforms.Compose([

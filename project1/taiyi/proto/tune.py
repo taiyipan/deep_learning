@@ -49,7 +49,7 @@ def block_count(depth: int) -> int:
     return (depth - 4) // 6
 
 def train_cifar(config, checkpoint_dir = None, num_workers = 16, valid_size = 0.1):
-    model = ResNet(BasicBlock, num_blocks = config['n'], k = config['k'])
+    model = ResNet(BasicBlock, config = config)
 
     device = "cpu"
     if torch.cuda.is_available():
@@ -59,8 +59,9 @@ def train_cifar(config, checkpoint_dir = None, num_workers = 16, valid_size = 0.
     model.to(device)
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr = config['lr'])
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max = 200)
+    # optimizer = optim.Adam(model.parameters(), lr = config['lr'])
+    optimizer = optim.SGD(model.parameters(), lr = 0.01, momentum = 0.9, weight_decay = 5e-4)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max = n_epochs)
 
     # The `checkpoint_dir` parameter gets passed by Ray Tune when a checkpoint
     # should be restored.
@@ -98,7 +99,7 @@ def train_cifar(config, checkpoint_dir = None, num_workers = 16, valid_size = 0.
         num_workers = num_workers
     )
 
-    for epoch in range(100):  # loop over the dataset multiple times
+    for epoch in range(200):  # loop over the dataset multiple times
         running_loss = 0.0
         epoch_steps = 0
         for i, data in enumerate(train_loader, 0):
@@ -146,7 +147,6 @@ def train_cifar(config, checkpoint_dir = None, num_workers = 16, valid_size = 0.
         # Here we save a checkpoint. It is automatically registered with
         # Ray Tune and will potentially be passed as the `checkpoint_dir`
         # parameter in future iterations.
-
         with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
             path = os.path.join(checkpoint_dir, "checkpoint")
             torch.save((model.state_dict(), optimizer.state_dict()), path)
@@ -156,7 +156,7 @@ def train_cifar(config, checkpoint_dir = None, num_workers = 16, valid_size = 0.
 
 
 def test_best_model(best_trial, num_workers = 16):
-    best_trained_model = ResNet(BasicBlock, num_blocks = best_trial.config['n'], k = best_trial.config['k'])
+    best_trained_model = ResNet(BasicBlock, config = best_trial.config)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     best_trained_model.to(device)
 
@@ -165,7 +165,7 @@ def test_best_model(best_trial, num_workers = 16):
     model_state, optimizer_state = torch.load(checkpoint_path)
     best_trained_model.load_state_dict(model_state)
 
-    _, test_set = load_data()
+    _, test_data = load_data()
 
     test_loader = torch.utils.data.DataLoader(
         test_data,
@@ -176,7 +176,7 @@ def test_best_model(best_trial, num_workers = 16):
     correct = 0
     total = 0
     with torch.no_grad():
-        for data in testloader:
+        for data in test_loader:
             images, labels = data
             images, labels = images.to(device), labels.to(device)
             outputs = best_trained_model(images)
@@ -186,12 +186,14 @@ def test_best_model(best_trial, num_workers = 16):
 
     print("Best trial test set accuracy: {}".format(correct / total))
 
-def main(num_samples = 10, max_num_epochs= 50, gpus_per_trial = 1):
+def main(num_samples = 10, max_num_epochs= 100, gpus_per_trial = 1):
     config = {
         'n': tune.choice([block_count(x) for x in range(16, 83, 6)]),
-        'k': tune.choice([2, 3]),
-        'lr': tune.loguniform(1e-4, 1e-1),
-        'batch_size': tune.choice([32, 64, 128, 256, 512])
+        'k': tune.choice([1, 2]),
+        # 'lr': tune.loguniform(1e-4, 1e-1),
+        'batch_size': tune.choice([32, 64, 128, 256]),
+        'net_p': tune.uniform(0.0, 0.5),
+        'block_p': tune.uniform(0.0, 0.5)
     }
     scheduler = ASHAScheduler(
         max_t=max_num_epochs,
@@ -205,7 +207,7 @@ def main(num_samples = 10, max_num_epochs= 50, gpus_per_trial = 1):
         mode = "min",
         num_samples = num_samples,
         scheduler = scheduler,
-        verbose = 2
+        verbose = 1
     )
 
     best_trial = result.get_best_trial("loss", "min", "last")
