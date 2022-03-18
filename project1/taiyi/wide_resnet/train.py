@@ -86,7 +86,7 @@ def get_num_blocks(depth: int) -> list:
     return [block_count(depth), block_count(depth), block_count(depth)]
 
 # instantiate model
-model = ResNet(BasicBlock, get_num_blocks(40))
+model = ResNet(BasicBlock, get_num_blocks(82), k = 2)
 if torch.cuda.is_available():
     model.cuda()
     print('Model in GPU')

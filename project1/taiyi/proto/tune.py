@@ -59,9 +59,8 @@ def train_cifar(config, checkpoint_dir = None, num_workers = 16, valid_size = 0.
     model.to(device)
 
     criterion = nn.CrossEntropyLoss()
-    # optimizer = optim.Adam(model.parameters(), lr = config['lr'])
-    optimizer = optim.SGD(model.parameters(), lr = 0.01, momentum = 0.9, weight_decay = 5e-4)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max = n_epochs)
+    optimizer = optim.SGD(model.parameters(), lr = config['lr'], momentum = 0.9, weight_decay = 5e-4)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max = 300)
 
     # The `checkpoint_dir` parameter gets passed by Ray Tune when a checkpoint
     # should be restored.
@@ -186,11 +185,11 @@ def test_best_model(best_trial, num_workers = 16):
 
     print("Best trial test set accuracy: {}".format(correct / total))
 
-def main(num_samples = 10, max_num_epochs= 100, gpus_per_trial = 1):
+def main(num_samples = 100, max_num_epochs= 300, gpus_per_trial = 1):
     config = {
         'n': tune.choice([block_count(x) for x in range(16, 83, 6)]),
         'k': tune.choice([1, 2]),
-        # 'lr': tune.loguniform(1e-4, 1e-1),
+        'lr': tune.loguniform(1e-4, 1e-1),
         'batch_size': tune.choice([32, 64, 128, 256]),
         'net_p': tune.uniform(0.0, 0.5),
         'block_p': tune.uniform(0.0, 0.5)
@@ -207,7 +206,7 @@ def main(num_samples = 10, max_num_epochs= 100, gpus_per_trial = 1):
         mode = "min",
         num_samples = num_samples,
         scheduler = scheduler,
-        verbose = 1
+        verbose = 3
     )
 
     best_trial = result.get_best_trial("loss", "min", "last")
