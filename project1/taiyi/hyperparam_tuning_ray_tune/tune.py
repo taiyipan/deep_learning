@@ -36,7 +36,7 @@ def load_data(data_dir = '/scratch/tp2231/pytorch/hyperparam_tuning_ray_tune/dat
     ])
 
     # get training and test sets
-    with FileLock('/scratch/tp2231/pytorch/hyperparam_tuning_ray_tune/data.lock'):
+    with FileLock(os.path.expanduser("~/.data.lock")):
         train_data = torchvision.datasets.CIFAR10(
             root = data_dir,
             train = True,
