@@ -22,6 +22,9 @@ from ray import tune
 from ray.tune.schedulers import ASHAScheduler
 
 def load_data(data_dir = '/scratch/tp2231/pytorch/hyperparam_tuning_ray_tune/data'):
+    '''
+    Load CIFAR10 dataset into train and test
+    '''
     # define transform
     transform_train = transforms.Compose([
         transforms.RandomCrop(32, padding=4),
@@ -54,10 +57,16 @@ def load_data(data_dir = '/scratch/tp2231/pytorch/hyperparam_tuning_ray_tune/dat
 
 # calculate block count per residual layer
 def block_count(depth: int) -> int:
+    '''
+    Verify and compute block count given depth value (total number of convolutional layers in resnet)
+    '''
     assert (depth - 4) % 6 == 0
     return (depth - 4) // 6
 
 def train_cifar(config, num_workers = 48, valid_size = 0.1):
+    '''
+    Training loop for resnet. This function is passed to ray tune run() method.
+    '''
     model = ResNet(BasicBlock, config = config)
 
     device = "cpu"
@@ -143,13 +152,18 @@ def train_cifar(config, num_workers = 48, valid_size = 0.1):
                 val_loss += loss.cpu().numpy()
                 val_steps += 1
 
+        # update scheduler
         scheduler.step()
 
         tune.report(loss=(val_loss / val_steps), accuracy=correct / total)
     print("Finished Training")
 
 def main(num_samples = 2, max_num_epochs = 1, cpus_per_trial = 48, gpus_per_trial = 4):
+    '''
+    Main: num_samples determines how many trial models we run, and max_num_epochs determines maximum epochs for each trial.
+    '''
     start = time()
+    # configure search space
     config = {
         'n': tune.choice([block_count(x) for x in range(16, 83, 6)]),
         'k': tune.choice([1, 2]),
